@@ -1,0 +1,195 @@
+# this is the cap1 sript file
+
+# install packages
+
+install.packages(tidyr)
+install.packages(dplyr)
+install.packages(mice)
+install.packages(Hmisc)
+
+#Load libraries
+
+library(tidyr)
+library(dplyr)
+library(mice)
+library(Hmisc)
+
+# Import data sets 
+
+ Conag <- read.csv("D:/School/springboard/cap/Conag.csv")
+ First.Data <- read.csv("D:/School/springboard/cap/First Data.csv")
+ wern1 <- read.csv("D:/School/springboard/cap/wern1.csv")
+ Union <- read.csv("D:/School/springboard/cap/Union.csv")
+ WMT <- read.csv("D:/School/springboard/cap/WMT.csv")
+ `daily sales` <- read.csv("D:/School/springboard/cap/items-2016-01-01-2017-01-01.csv")
+ DailyCrimeLogSummary <- read.csv("D:/School/springboard/cap/DailyCrimeLogSummary.csv")
+ Fuel.Cost <- read.csv("D:/School/springboard/cap/Fuel Cost.csv")
+ Tempatures <- read.csv("D:/School/springboard/cap/Tempatures.csv")
+ 
+ 
+ # Wrangle Data
+ 
+ # Clean stock data sets to flter out unwanted columns
+ 
+ Con <- select(Conag, date, close)
+ First <- select(First.Data, date, close)
+ Wer <- select(wern1, date, close)
+ UP <- select(Union, date, close)
+ Wal <- select(WMT, date, close)
+ 
+ #renamed close price columns in stock price data sets to represent each individual company
+ 
+ names(Wal)[2] <- "Walmart"
+ names(UP)[2] <- "Union"
+ names(Wer)[2] <- "Werner"
+ names(First)[2] <- "First.Data"
+ names(Con)[2] <- "Conagra"
+ 
+ #Join all stock data sets into one data set
+ 
+ S1 <- left_join(Wal,UP, by = "date")
+ S2 <- left_join(Wer,First, by = "date")
+ S3 <- left_join(Con,S1, by = "date")
+ Stocks <- left_join(S3,S2, by = "date")
+ 
+# clean sales data 
+ 
+ 'daily sales' <- select(items.2016.01.01.2017.01.01, Date)
+ 
+ Sales<-dplyr::count(`daily sales`,Date)
+ 
+ names(Sales)[1] <- "date"
+ 
+ names(Sales)[2] <- "Number of customers"
+ 
+ # clean Tempatures 
+ 
+ 'Rain' <- select(Tempatures, Date, Rain)
+ 
+ names(Rain)[1] <- "date"
+ 
+ 'Temp' <- select(Tempatures, Date, Tempature.High...F.)
+ 
+ names(Temp)[1] <- "date"
+ 
+# Clean Crime Data set
+ 
+ Test <- tidyr::separate(DailyCrimeLogSummary, Start.Occurred, c("date", "time" ),sep=" ")
+
+ 't' <- select(Test, date)
+ 
+ Crimes<-dplyr::count(`t`,date)
+ 
+ names(Crimes)[2] <- "Number of crimes"
+ 
+ names(Crimes)[1] <- "date"
+ 
+ 
+ # Clean fuel data set
+ 
+ names(Fuel.Cost)[2] <- "Fuel Price"
+ 
+ names(Fuel.Cost)[1] <- "date"
+ 
+# Merging all of the data sets into one data set 
+ 
+ m1 <- left_join(Sales,Stocks, by = "date")
+ m2 <- left_join(m1,Rain, by = "date")
+ m3 <- left_join(m2,Temp, by = "date")
+ m4 <- left_join(m3,Crimes, by = "date")
+ ds <- left_join(m4, Fuel.Cost, by = "date")
+ 
+# Recitation
+ 
+ str(ds)
+ 
+ summary(ds)
+ 
+ # Multiple Imputation
+ 
+ sds1 <- ds[c("Conagra", "Walmart", "Union", "Werner", "First.Data")]
+ 
+ sds2 <- ds[c("Number of crimes", "Fuel Price")]
+ 
+ set.seed(123)
+ 
+ ids1 <- complete(mice(sds1))
+ 
+ ids2 <- complete(mice(sds2))
+ 
+ summary(ids1)
+ 
+ summary(ids2)
+ 
+ # I will use multible variatins of the imputed data, ds1 will have all NA's with estapulated data. ds2 will have NA's replaced with o variables for number of crimes and with fuel prices carried through the week.
+ 
+ ds1 = ds
+ 
+ ds2 = ds
+ 
+ # import imputed data back into new ds1 and ds2
+ 
+
+ ds1$Conagra = ids1$Conagra
+ 
+ ds1$Walmart = ids1$Walmart
+ 
+ ds1$Union = ids1$Union
+ 
+ ds1$Werner = ids1$Werner
+ 
+ ds1$First.Data = ids1$First.Data
+ 
+ ds1$`Number of crimes` = ids2$`Number of crimes`
+ 
+ ds1$`Fuel Price` = ids2$`Fuel Price`
+ 
+ summary(ds1)
+ 
+ str(ds1)
+ 
+ # Linear regression
+
+ model1 = lm(ds1$`Number of customers` ~ ds1$Tempature.High...F. )
+
+  summary(model1) 
+  
+  model1$residuals
+  
+  sse1 = sum(model1$residuals^2)
+  sse1
+  
+  model2 =lm(ds1$`Number of customers` ~ ds1$Tempature.High...F.+ ds1$Rain)
+
+  summary(model2) # rain is not a factor
+  
+  sse2 = sum(model2$residuals^2)
+  sse2
+  
+  modelds = lm(ds1$`Number of customers` ~ ds1$Tempature.High...F.+ ds1$Rain + ds1$Conagra+ ds1$Walmart + ds1$Union + ds1$Werner + ds1$First.Data)
+  
+  summary(modelds)
+  
+  sseds = sum(modelds$residuals^2)
+  sseds
+  
+  # Improving the model using coefficients
+  
+  modelds1 = lm(ds1$`Number of customers` ~ ds1$Tempature.High...F.+ ds1$Rain + ds1$Conagra + ds1$Union + ds1$Werner + ds1$First.Data)
+  
+  summary(modelds1)
+  
+  modelds2 = lm(ds1$`Number of customers` ~ ds1$Tempature.High...F.+ ds1$Rain + ds1$Conagra + ds1$Union + ds1$Werner)
+  
+  summary(modelds2)
+  
+  modelds3 = lm(ds1$`Number of customers` ~ ds1$Tempature.High...F.+ ds1$Rain + ds1$Conagra + ds1$Union)
+  
+  summary(modelds3)
+  
+  # corralation matrix, set seed and remove date in order to allow correlation
+  
+  ds1c <- select(ds1, -date)
+  set.seed(123)
+  cor(ds1c)
+  
