@@ -6,13 +6,18 @@ install.packages(tidyr)
 install.packages(dplyr)
 install.packages(mice)
 install.packages(Hmisc)
+install.packages("gridExtra")
+install.packages("reshape2")
 
 #Load libraries
 
 library(tidyr)
 library(dplyr)
 library(mice)
-library(Hmisc)
+library(gridExtra)
+library(ggplot2)
+library(reshape2)
+
 
 # Import data sets 
 
@@ -192,4 +197,52 @@ library(Hmisc)
   ds1c <- select(ds1, -date)
   set.seed(123)
   cor(ds1c)
+ 
+   #EDA 
   
+  #- Histograms
+  
+  par(mfrow=c(4,3))
+  hist(ds1c$`Number of customers`)
+  hist(ds1c$Conagra)
+  hist(ds1c$Walmart)
+  hist(ds1c$Union)
+  hist(ds1c$Werner)
+  hist(ds1c$First.Data)
+  hist(ds1c$Rain)
+  hist(ds1c$Tempature.High...F.)
+  hist(ds1c$`Number of crimes`)
+  hist(ds1c$`Fuel Price`)
+  
+  #scatter plots
+
+  par(mfrow=c(3,3))  
+  plot(ds1c$`Number of customers`, ds1c$Conagra)
+  plot(ds1c$`Number of customers`, ds1c$Walmart)
+  plot(ds1c$`Number of customers`, ds1c$Union)
+  plot(ds1c$`Number of customers`, ds1c$Werner)
+  plot(ds1c$`Number of customers`, ds1c$First.Data)
+  plot(ds1c$`Number of customers`, ds1c$Rain)
+  plot(ds1c$`Number of customers`, ds1c$Tempature.High...F.)
+  plot(ds1c$`Number of customers`, ds1c$`Number of crimes`)
+  plot(ds1c$`Number of customers`, ds1c$`Fuel Price`)
+  
+  
+  boxplot(ds1c[ds1c$Conagra], ds1c[ds1c$Walmart], ds1c[ds1c$Union])
+ 
+  # Random Forest
+  
+  data =ds1c
+  set.seed(123)
+  rownames(data)<-1:nrow(data)
+  rows <- sample(x=1:nrow(data),size=0.7 *  nrow(data))
+   
+      train <- data[rows,]
+  test <-data[! rownames(data) %in% rows,]
+  
+  tt1 <- ggplot2::aes(train$Rain, train$`Number of customers`,fill=cut) 
+  
+  tt1
+  
+  #EDA
+ 
